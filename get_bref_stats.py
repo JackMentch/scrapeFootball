@@ -32,6 +32,14 @@ CELL_STAT_RE = re.compile(
     re.DOTALL | re.IGNORECASE,
 )
 YEAR_RE = re.compile(r"(19\d{2}|20\d{2})")
+TEAM_CODE_MAP = {
+    "RAI": "LVR",
+    "OAK": "LVR",
+    "RAM": "LAR",
+    "STL": "LAR",
+    "SDG": "LAC",
+    "PHO": "ARI",
+}
 
 DEFAULT_URL = "https://www.pro-football-reference.com/players/A/AvilSt00.htm"
 DEFAULT_CSV = "out.csv"
@@ -553,14 +561,15 @@ def _year_from_row(row: Dict[str, str]) -> str:
 
 
 def _team_from_row(row: Dict[str, str]) -> str:
-    return (
+    team = (
         row.get("team")
         or row.get("team_name_abbr")
         or row.get("tm")
         or row.get("team_id")
         or row.get("team_ID")
         or ""
-    ).strip()
+    ).strip().upper()
+    return TEAM_CODE_MAP.get(team, team)
 
 
 def _awards_from_row(row: Dict[str, str]) -> str:
