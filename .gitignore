@@ -1,0 +1,5 @@
+.selenium_profile/
+__pycache__/
+out/
+out.csv
+*.pyc
