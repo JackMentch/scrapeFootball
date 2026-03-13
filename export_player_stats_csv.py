@@ -96,6 +96,7 @@ FLOAT_COLS: Set[str] = {
     "rec_ypg",
     "playoff_pass_rating",
     "fan_pts",
+    "fan_pts_ppr",
 }
 
 JSON_COLS: Set[str] = {"college"}

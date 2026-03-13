@@ -1,0 +1,15 @@
+2026/03/12-22:11:42.221 2167b5 Reusing MANIFEST /Users/jackmentch/Desktop/scrape/scrapeFootball/.selenium_profile_links/Default/Local Storage/leveldb/MANIFEST-000001
+2026/03/12-22:11:42.224 2167b5 Recovering log #14
+2026/03/12-22:11:42.224 2167b5 Reusing old log /Users/jackmentch/Desktop/scrape/scrapeFootball/.selenium_profile_links/Default/Local Storage/leveldb/000014.log 
+2026/03/12-22:13:13.950 2167b8 Level-0 table #18: started
+2026/03/12-22:13:13.957 2167b8 Level-0 table #18: 20407 bytes OK
+2026/03/12-22:13:13.974 2167b8 Delete type=0 #14
+2026/03/12-22:13:13.978 2167b8 Compacting 4@0 + 1@1 files
+2026/03/12-22:13:13.980 2167b8 Generated table #19@0: 119 keys, 11131 bytes
+2026/03/12-22:13:13.980 2167b8 Compacted 4@0 + 1@1 files => 11131 bytes
+2026/03/12-22:13:13.981 2167b8 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/03/12-22:13:13.982 2167b8 Delete type=2 #15
+2026/03/12-22:13:13.982 2167b8 Delete type=2 #7
+2026/03/12-22:13:13.982 2167b8 Delete type=2 #12
+2026/03/12-22:13:13.982 2167b8 Delete type=2 #10
+2026/03/12-22:13:13.982 2167b8 Delete type=2 #18

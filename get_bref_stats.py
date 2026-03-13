@@ -15,10 +15,6 @@ from typing import Dict, List, Optional, Tuple
 
 import requests
 from bs4 import BeautifulSoup, Comment
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
 
 COMMENT_RE = re.compile(r"<!--|-->")
 TABLE_RE = re.compile(
@@ -78,6 +74,7 @@ OUTPUT_COLUMNS = [
     "mvp_votes",
     "mvp",
     "fan_pts",
+    "fan_pts_ppr",
     "pass_yds",
     "pass_td",
     "pass_int",
@@ -148,7 +145,9 @@ def _strip_comments(text: str) -> str:
     return COMMENT_RE.sub("", text)
 
 
-def _build_driver() -> webdriver.Chrome:
+def _build_driver():
+    from selenium import webdriver
+
     options = webdriver.ChromeOptions()
     if os.getenv("HEADLESS", "0") == "1":
         options.add_argument("--headless=new")
@@ -170,6 +169,10 @@ def _build_driver() -> webdriver.Chrome:
 
 
 def _fetch_html_via_browser(url: str) -> str:
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.support.ui import WebDriverWait
+
     driver = _build_driver()
     try:
         for attempt in range(1, 4):
@@ -731,6 +734,87 @@ def _to_int(value: str) -> int:
         return 0
 
 
+def _format_fan_pts(value: float, decimals: int = 2) -> str:
+    text = f"{value:.{decimals}f}".rstrip("0").rstrip(".")
+    return text if text else "0"
+
+
+def _calc_fan_pts_common(
+    pass_yds: str,
+    pass_td: str,
+    pass_int: str,
+    rec: str,
+    rush_yds: str,
+    rec_yds: str,
+    rush_td: str,
+    rec_td: str,
+    fmb: str,
+    ppr: bool,
+    decimals: int,
+) -> str:
+    points = (
+        (_to_int(rec) if ppr else 0)
+        + (_to_int(pass_yds) / 25.0)
+        + (_to_int(pass_td) * 4)
+        - (_to_int(pass_int) * 2)
+        + ((_to_int(rush_yds) + _to_int(rec_yds)) / 10.0)
+        + ((_to_int(rush_td) + _to_int(rec_td)) * 6)
+        - _to_int(fmb)
+    )
+    return _format_fan_pts(points, decimals=decimals)
+
+
+def _calc_fan_pts(
+    pass_yds: str,
+    pass_td: str,
+    pass_int: str,
+    rush_yds: str,
+    rec_yds: str,
+    rush_td: str,
+    rec_td: str,
+    fmb: str,
+) -> str:
+    return _calc_fan_pts_common(
+        pass_yds=pass_yds,
+        pass_td=pass_td,
+        pass_int=pass_int,
+        rec="0",
+        rush_yds=rush_yds,
+        rec_yds=rec_yds,
+        rush_td=rush_td,
+        rec_td=rec_td,
+        fmb=fmb,
+        ppr=False,
+        decimals=1,
+    )
+
+
+def _calc_fan_pts_ppr(
+    rec: str,
+    pass_yds: str,
+    pass_td: str,
+    pass_int: str,
+    rush_yds: str,
+    rec_yds: str,
+    rush_td: str,
+    rec_td: str,
+    fmb: str,
+) -> str:
+    return _calc_fan_pts_common(
+        pass_yds=pass_yds,
+        pass_td=pass_td,
+        pass_int=pass_int,
+        rec=rec,
+        rush_yds=rush_yds,
+        rec_yds=rec_yds,
+        rush_td=rush_td,
+        rec_td=rec_td,
+        fmb=fmb,
+        ppr=True,
+        decimals=2,
+    )
+
+
 def _compose_rows(meta: Dict[str, str], tables: Dict[str, List[Dict[str, str]]]) -> List[Dict[str, str]]:
     pass_rows = _table_rows(tables, ("passing",))
     if not pass_rows:
@@ -752,10 +836,6 @@ def _compose_rows(meta: Dict[str, str], tables: Dict[str, List[Dict[str, str]]])
         if not rr_post_rows:
             rr_post_rows = _table_rows_like(tables, include_tokens=("rushing", "receiving", "post"))
 
-    fantasy_rows = _table_rows(tables, ("fantasy",))
-    if not fantasy_rows:
-        fantasy_rows = _table_rows_like(tables, include_tokens=("fantasy",), exclude_tokens=("playoff", "post"))
-
     keys = _base_keys(pass_rows, rr_rows)
     tm_awards = _tm_awards_by_season(pass_rows, rr_rows)
     out: List[Dict[str, str]] = []
@@ -768,8 +848,6 @@ def _compose_rows(meta: Dict[str, str], tables: Dict[str, List[Dict[str, str]]])
 
         pp = _find_row_by_season_team(pass_post_rows, season, team) or _find_row_by_season(pass_post_rows, season)
         rp = _find_row_by_season_team(rr_post_rows, season, team) or _find_row_by_season(rr_post_rows, season)
-        fz = _find_row_by_season_team(fantasy_rows, season, team) or _find_row_by_season(fantasy_rows, season)
-
         awards = _merge_awards(_awards_from_row(p), _awards_from_row(r))
         awards = _merge_awards(awards, _awards_from_row(pp))
         awards = _merge_awards(awards, _awards_from_row(rp))
@@ -808,7 +886,6 @@ def _compose_rows(meta: Dict[str, str], tables: Dict[str, List[Dict[str, str]]])
             "mvp_top5": _truth(_award_rank_present(awards, "MVP", [1, 2, 3, 4, 5])),
             "mvp_votes": _truth(_award_votes_present(awards, "MVP")),
             "mvp": _truth(_token_present(awards, "MVP-1")),
-            "fan_pts": fz.get("fantasy_points", ""),
             "pass_yds": p.get("pass_yds", ""),
             "pass_td": p.get("pass_td", ""),
             "pass_int": p.get("pass_int", ""),
@@ -866,6 +943,27 @@ def _compose_rows(meta: Dict[str, str], tables: Dict[str, List[Dict[str, str]]])
             "career_pass_yds": "0",
             "career_pass_td": "0",
         }
+        row["fan_pts"] = _calc_fan_pts(
+            pass_yds=row["pass_yds"],
+            pass_td=row["pass_td"],
+            pass_int=row["pass_int"],
+            rush_yds=row["rush_yds"],
+            rec_yds=row["rec_yds"],
+            rush_td=row["rush_td"],
+            rec_td=row["rec_td"],
+            fmb=row["fmb"],
+        )
+        row["fan_pts_ppr"] = _calc_fan_pts_ppr(
+            rec=row["rec"],
+            pass_yds=row["pass_yds"],
+            pass_td=row["pass_td"],
+            pass_int=row["pass_int"],
+            rush_yds=row["rush_yds"],
+            rec_yds=row["rec_yds"],
+            rush_td=row["rush_td"],
+            rec_td=row["rec_td"],
+            fmb=row["fmb"],
+        )
         row["ap"] = _truth(row["ap_1"] == "true" or row["ap_2"] == "true")
         if YEAR_RE.search(row["season"]):
             out.append(row)

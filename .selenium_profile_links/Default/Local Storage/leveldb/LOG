@@ -1,0 +1,6 @@
+2026/03/12-22:22:38.592 219832 Reusing MANIFEST /Users/jackmentch/Desktop/scrape/scrapeFootball/.selenium_profile_links/Default/Local Storage/leveldb/MANIFEST-000001
+2026/03/12-22:22:38.594 219832 Recovering log #17
+2026/03/12-22:22:38.594 219832 Reusing old log /Users/jackmentch/Desktop/scrape/scrapeFootball/.selenium_profile_links/Default/Local Storage/leveldb/000017.log 
+2026/03/12-22:23:38.598 219835 Level-0 table #22: started
+2026/03/12-22:23:38.612 219835 Level-0 table #22: 18767 bytes OK
+2026/03/12-22:23:38.629 219835 Delete type=0 #17
